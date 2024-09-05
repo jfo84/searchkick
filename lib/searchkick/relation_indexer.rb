@@ -68,10 +68,13 @@ module Searchkick
     end
 
     def in_batches(relation)
-      if relation.respond_to?(:find_in_batches)
+      if relation.respond_to?(:in_batches)
         klass = relation.klass
         # remove order to prevent possible warnings
-        relation.except(:order).find_in_batches(batch_size: batch_size) do |batch|
+        relation.except(:order).in_batches(of: batch_size) do |batch_relation|
+          isolated_relation = RelationIsolator.isolate(batch_relation)
+          batch = isolated_relation.to_a
+
           # prevent scope from affecting search_data as well as inline jobs
           # Active Record runs relation calls in scoping block
           # https://github.com/rails/rails/blob/main/activerecord/lib/active_record/relation/delegation.rb
