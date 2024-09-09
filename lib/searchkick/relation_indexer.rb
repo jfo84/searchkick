@@ -28,11 +28,11 @@ module Searchkick
         end
       end
 
+      relation = resume_relation(relation) if resume
+
       if mode == :async && full
         return full_reindex_async(relation)
       end
-
-      relation = resume_relation(relation) if resume
 
       reindex_options = {
         mode: mode,
