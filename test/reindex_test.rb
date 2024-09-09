@@ -239,7 +239,7 @@ class ReindexTest < Minitest::Test
     # Delete "Product A" and skip callbacks so it doesn't reindex
     Product.delete_all
     # Reset the primary key so the first product stored below should be skipped by resume
-    ActiveRecord::Base.connection.reset_pk_sequence!(Product.table_name)
+    ActiveRecord::Base.connection.execute("DELETE FROM sqlite_sequence WHERE name='#{Product.table_name}'")
 
     store_names ["Product B", "Product C"], reindex: false
     perform_enqueued_jobs do
