@@ -220,6 +220,37 @@ class ReindexTest < Minitest::Test
     assert_search "product", ["Product A"]
   end
 
+  def test_full_async_resume
+    store_names ["Product A"], reindex: false
+    reindex = nil
+    perform_enqueued_jobs do
+      reindex = Product.reindex(mode: :async)
+      assert_search "product", [], conversions: false
+    end
+
+    index = Searchkick::Index.new(reindex[:index_name])
+    index.refresh
+    assert_equal 1, index.total_docs
+
+    reindex_status = Searchkick.reindex_status(reindex[:name])
+    assert_equal true, reindex_status[:completed]
+    assert_equal 0, reindex_status[:batches_left]
+
+    # Delete "Product A" and skip callbacks so it doesn't reindex
+    Product.delete_all
+    # Reset the primary key so the first product stored below should be skipped by resume
+    ActiveRecord::Base.connection.reset_pk_sequence!(Product.table_name)
+
+    store_names ["Product B", "Product C"], reindex: false
+    perform_enqueued_jobs do
+      reindex = Product.reindex(mode: :async, resume: true)
+      assert_search "product", ["Product A"], conversions: false
+    end
+
+    Product.searchkick_index.promote(reindex[:index_name])
+    assert_search "product", ["Product A", "Product C"]
+  end
+
   def test_full_async_should_index
     store_names ["Product A", "Product B", "DO NOT INDEX"], reindex: false
 
