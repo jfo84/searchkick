@@ -73,6 +73,8 @@ module Searchkick
         # remove order to prevent possible warnings
         relation.except(:order).in_batches(of: batch_size) do |batch_relation|
           isolated_relation = RelationIsolator.isolate(batch_relation)
+          pp 'Relation SQL: '
+          pp isolated_relation.to_sql
           batch = isolated_relation.to_a
 
           # prevent scope from affecting search_data as well as inline jobs
